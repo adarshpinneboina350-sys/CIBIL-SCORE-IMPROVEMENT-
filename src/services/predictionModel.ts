@@ -46,10 +46,10 @@ export const analyzeCreditGrowth = (profile: CreditGrowthProfile): GrowthAnalysi
     inquiriesInPeriod,
     creditAgeYears,
     hasSecuredLoan,
+    loanType,
+    emiPaymentBehavior,
     accountSettledNotCleared,
     creditLimitIncreased,
-    otherCreditCards,
-    currentlyUsedCreditCards,
     appliedForLoanInLast4Months
   } = profile;
 
@@ -60,11 +60,7 @@ export const analyzeCreditGrowth = (profile: CreditGrowthProfile): GrowthAnalysi
   // Utilization Management Impact (30% weight)
   let utilImpact = (utilizationReduction / 100) * 70;
   if (creditLimitIncreased) utilImpact += 8;
-  // Penalty for having too many cards but using most of them (indicates dependency on credit)
-  const cardUsageRatio = otherCreditCards > 0 ? currentlyUsedCreditCards / otherCreditCards : 0;
-  if (cardUsageRatio > 0.8 && otherCreditCards > 4) {
-    utilImpact -= 7;
-  }
+  
   totalIncrement += utilImpact;
   attribution.push({ factor: 'Utilization Management', impact: utilImpact });
 
@@ -80,13 +76,40 @@ export const analyzeCreditGrowth = (profile: CreditGrowthProfile): GrowthAnalysi
       attribution.push({ factor: 'Full Overdue Clearance', impact: overdueBonus });
     }
   }
+
+  // EMI Payment Behavior Impact
+  if (hasSecuredLoan && emiPaymentBehavior !== 'NONE') {
+    let emiImpact = 0;
+    if (emiPaymentBehavior === 'CORRECT') emiImpact = 10;
+    else if (emiPaymentBehavior === 'MORE') emiImpact = 22;
+    else if (emiPaymentBehavior === 'LESS') emiImpact = -35;
+    
+    paymentImpact += emiImpact;
+    attribution.push({ factor: `EMI Behavior (${emiPaymentBehavior})`, impact: emiImpact });
+  }
+
   totalIncrement += paymentImpact;
   attribution.push({ factor: 'Payment Consistency', impact: (onTimePaymentsInPeriod / 6) * 12 });
 
   // Credit Mix & Age (25% weight)
-  const mixImpact = hasSecuredLoan ? 15 : 0;
+  let mixImpact = 0;
+  if (hasSecuredLoan) {
+    mixImpact = 15; // Base impact
+    
+    // Loan Type specific impact
+    let typeBonus = 0;
+    if (loanType === 'HOME') typeBonus = 25;
+    else if (loanType === 'BUSINESS') typeBonus = 20;
+    else if (loanType === 'VEHICLE') typeBonus = 15;
+    else if (loanType === 'EDUCATION') typeBonus = 12;
+    else if (loanType === 'PERSONAL') typeBonus = 8;
+    
+    mixImpact += typeBonus;
+    attribution.push({ factor: `Loan Type Impact (${loanType})`, impact: typeBonus });
+  }
+  
   totalIncrement += mixImpact;
-  attribution.push({ factor: 'Credit Mix (Secured)', impact: mixImpact });
+  attribution.push({ factor: 'Credit Mix (Secured)', impact: 15 });
 
   const ageImpact = Math.min(20, creditAgeYears * 2);
   totalIncrement += ageImpact;

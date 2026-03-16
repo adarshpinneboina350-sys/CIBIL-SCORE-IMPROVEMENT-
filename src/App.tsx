@@ -26,6 +26,7 @@ import ContactPage from './components/ContactPage';
 import LoginPage from './components/LoginPage';
 import VerifyEmailPage from './components/VerifyEmailPage';
 import DashboardHome from './components/DashboardHome';
+import ScoreAssignmentPage from './components/ScoreAssignmentPage';
 import FeatureDetailPage, { FeatureId } from './components/FeatureDetailPage';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -40,10 +41,10 @@ const DEFAULT_PROFILE: CreditGrowthProfile = {
   inquiriesInPeriod: 1,
   creditAgeYears: 5,
   hasSecuredLoan: true,
+  loanType: 'HOME',
+  emiPaymentBehavior: 'CORRECT',
   accountSettledNotCleared: false,
   creditLimitIncreased: false,
-  otherCreditCards: 2,
-  currentlyUsedCreditCards: 1,
   appliedForLoanInLast4Months: false
 };
 
@@ -55,14 +56,14 @@ const EXAMPLE_PROFILE: CreditGrowthProfile = {
   inquiriesInPeriod: 0,
   creditAgeYears: 8,
   hasSecuredLoan: true,
+  loanType: 'PERSONAL',
+  emiPaymentBehavior: 'MORE',
   accountSettledNotCleared: false,
   creditLimitIncreased: true,
-  otherCreditCards: 5,
-  currentlyUsedCreditCards: 4,
   appliedForLoanInLast4Months: false
 };
 
-type ViewMode = 'LANDING' | 'ABOUT' | 'CONTACT' | 'LOGIN' | 'VERIFY_EMAIL' | 'DASHBOARD_HOME' | 'ANALYZER' | 'LOAN_DECISION' | 'FEATURE_DETAIL';
+type ViewMode = 'LANDING' | 'ABOUT' | 'CONTACT' | 'LOGIN' | 'VERIFY_EMAIL' | 'DASHBOARD_HOME' | 'ANALYZER' | 'LOAN_DECISION' | 'FEATURE_DETAIL' | 'SCORE_ASSIGNMENT';
 
 export default function App() {
   const [profile, setProfile] = useState<CreditGrowthProfile>(DEFAULT_PROFILE);
@@ -237,6 +238,8 @@ export default function App() {
           return null;
         }
         return <DashboardHome userEmail={userEmail} onNavigate={navigate} isDarkMode={isDarkMode} />;
+      case 'SCORE_ASSIGNMENT':
+        return <ScoreAssignmentPage onBack={handleBack} isDarkMode={isDarkMode} />;
       case 'LOAN_DECISION':
         return <LoanDecisionView decision={loanDecision} analysis={analysis} onBack={handleBack} onAnalyzeAgain={resetAnalysis} isDarkMode={isDarkMode} />;
       case 'FEATURE_DETAIL':

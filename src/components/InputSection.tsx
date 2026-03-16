@@ -11,12 +11,7 @@ interface InputSectionProps {
 
 const InputSection: React.FC<InputSectionProps> = ({ profile, setProfile, onReset, onLoadExample }) => {
   const handleChange = (field: keyof CreditGrowthProfile, value: any) => {
-    // Ensure used cards don't exceed total cards
-    if (field === 'otherCreditCards' && value < profile.currentlyUsedCreditCards) {
-      setProfile({ ...profile, currentlyUsedCreditCards: value, [field]: value });
-    } else {
-      setProfile({ ...profile, [field]: value });
-    }
+    setProfile({ ...profile, [field]: value });
   };
 
   return (
@@ -104,34 +99,18 @@ const InputSection: React.FC<InputSectionProps> = ({ profile, setProfile, onRese
           />
         </div>
 
-        {/* Other Credit Cards */}
+        {/* Inquiries */}
         <div className="space-y-2">
           <div className="flex justify-between">
-            <label className="text-sm font-medium text-slate-600">Total Other Credit Cards</label>
-            <span className="text-sm font-bold text-blue-700">{profile.otherCreditCards}</span>
+            <label className="text-sm font-medium text-slate-600">Hard Inquiries in Period</label>
+            <span className="text-sm font-bold text-blue-700">{profile.inquiriesInPeriod}</span>
           </div>
           <input 
             type="range" 
             min="0" 
-            max="20" 
-            value={profile.otherCreditCards}
-            onChange={(e) => handleChange('otherCreditCards', parseInt(e.target.value))}
-            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
-        </div>
-
-        {/* Currently Used Credit Cards */}
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <label className="text-sm font-medium text-slate-600">Actively Used Cards</label>
-            <span className="text-sm font-bold text-blue-700">{profile.currentlyUsedCreditCards}</span>
-          </div>
-          <input 
-            type="range" 
-            min="0" 
-            max={profile.otherCreditCards}
-            value={profile.currentlyUsedCreditCards}
-            onChange={(e) => handleChange('currentlyUsedCreditCards', parseInt(e.target.value))}
+            max="10" 
+            value={profile.inquiriesInPeriod}
+            onChange={(e) => handleChange('inquiriesInPeriod', parseInt(e.target.value))}
             className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
           />
         </div>
@@ -205,7 +184,7 @@ const InputSection: React.FC<InputSectionProps> = ({ profile, setProfile, onRese
           )}
 
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-700">Do you have a Secured Loan (Home/Auto)?</label>
+            <label className="text-sm font-medium text-slate-700">Do you have an Active Loan?</label>
             <div className="flex bg-slate-100 p-1 rounded-lg">
               <button
                 onClick={() => handleChange('hasSecuredLoan', true)}
@@ -214,13 +193,49 @@ const InputSection: React.FC<InputSectionProps> = ({ profile, setProfile, onRese
                 YES
               </button>
               <button
-                onClick={() => handleChange('hasSecuredLoan', false)}
+                onClick={() => {
+                  setProfile({ ...profile, hasSecuredLoan: false, loanType: 'NONE', emiPaymentBehavior: 'NONE' });
+                }}
                 className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!profile.hasSecuredLoan ? 'bg-white text-slate-600 shadow-sm' : 'text-slate-500'}`}
               >
                 NO
               </button>
             </div>
           </div>
+
+          {profile.hasSecuredLoan && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">What type of loan?</label>
+                <select 
+                  value={profile.loanType}
+                  onChange={(e) => handleChange('loanType', e.target.value)}
+                  className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="NONE">Select Type</option>
+                  <option value="HOME">Home Loan</option>
+                  <option value="PERSONAL">Personal Loan</option>
+                  <option value="BUSINESS">Business Loan</option>
+                  <option value="VEHICLE">Vehicle Loan</option>
+                  <option value="EDUCATION">Education Loan</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">EMI Payment Behavior</label>
+                <select 
+                  value={profile.emiPaymentBehavior}
+                  onChange={(e) => handleChange('emiPaymentBehavior', e.target.value)}
+                  className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="NONE">Select Behavior</option>
+                  <option value="CORRECT">Correct EMI (On Time)</option>
+                  <option value="MORE">Paying More than EMI</option>
+                  <option value="LESS">Paying Less than EMI</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-slate-700">Was your Credit Limit increased?</label>

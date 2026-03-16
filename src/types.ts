@@ -1,3 +1,6 @@
+export type LoanType = 'HOME' | 'PERSONAL' | 'BUSINESS' | 'VEHICLE' | 'EDUCATION' | 'NONE';
+export type EMIBehavior = 'CORRECT' | 'MORE' | 'LESS' | 'NONE';
+
 export interface CreditGrowthProfile {
   startingScore: number;
   utilizationReduction: number;
@@ -6,10 +9,10 @@ export interface CreditGrowthProfile {
   inquiriesInPeriod: number;
   creditAgeYears: number;
   hasSecuredLoan: boolean;
+  loanType: LoanType;
+  emiPaymentBehavior: EMIBehavior;
   accountSettledNotCleared: boolean;
   creditLimitIncreased: boolean;
-  otherCreditCards: number;
-  currentlyUsedCreditCards: number;
   appliedForLoanInLast4Months: boolean;
 }
 

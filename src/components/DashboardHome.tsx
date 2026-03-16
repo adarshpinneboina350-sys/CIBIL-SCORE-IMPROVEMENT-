@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, BarChart3, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BarChart3, ShieldCheck, Award } from 'lucide-react';
 
 interface DashboardHomeProps {
   userEmail: string;
-  onNavigate: (page: 'ANALYZER' | 'LOAN_DECISION') => void;
+  onNavigate: (page: 'ANALYZER' | 'LOAN_DECISION' | 'SCORE_ASSIGNMENT') => void;
   isDarkMode: boolean;
 }
 
@@ -14,14 +14,14 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ userEmail, onNavigate, is
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl mx-auto"
+        className="max-w-6xl mx-auto"
       >
         <div className="text-center mb-16">
           <h1 className="text-5xl font-black mb-4">Welcome Back!</h1>
           <p className="text-xl font-medium text-teal-500">{userEmail}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <motion.div
             whileHover={{ y: -5, scale: 1.02 }}
             onClick={() => onNavigate('ANALYZER')}
@@ -49,6 +49,21 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ userEmail, onNavigate, is
             </p>
             <div className="flex items-center gap-2 font-bold text-emerald-500">
               Check Eligibility <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ y: -5, scale: 1.02 }}
+            onClick={() => onNavigate('SCORE_ASSIGNMENT')}
+            className={`p-10 rounded-3xl border cursor-pointer group ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}
+          >
+            <Award className="text-amber-500 mb-6" size={48} />
+            <h2 className="text-2xl font-bold mb-3">Score Assignment</h2>
+            <p className={`text-sm opacity-70 mb-6 leading-relaxed`}>
+              Learn how points are assigned for each action and see how different loan types impact your score.
+            </p>
+            <div className="flex items-center gap-2 font-bold text-amber-500">
+              View Assignment <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </div>
           </motion.div>
         </div>
