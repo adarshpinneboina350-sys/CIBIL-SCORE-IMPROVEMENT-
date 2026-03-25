@@ -11,21 +11,60 @@ import {
   RefreshCcw,
   Download
 } from 'lucide-react';
-import { LoanDecision, GrowthAnalysisResult } from '../types';
+import { LoanDecision, GrowthAnalysisResult, CreditGrowthProfile } from '../types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { getFirebaseDb, getFirebaseAuth, handleFirestoreError, OperationType } from '../firebase';
 
 interface LoanDecisionViewProps {
   decision: LoanDecision;
   analysis: GrowthAnalysisResult;
+  profile: CreditGrowthProfile;
   onBack: () => void;
   onAnalyzeAgain: () => void;
   isDarkMode: boolean;
 }
 
-const LoanDecisionView: React.FC<LoanDecisionViewProps> = ({ decision, analysis, onBack, onAnalyzeAgain, isDarkMode }) => {
+const LoanDecisionView: React.FC<LoanDecisionViewProps> = ({ decision, analysis, profile, onBack, onAnalyzeAgain, isDarkMode }) => {
   const isGranted = decision.status === 'GRANTED';
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [saveStatus, setSaveStatus] = React.useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
   const referenceNumber = useMemo(() => `#LN-2026-${Math.floor(Math.random() * 9000) + 1000}`, []);
+
+  const handleSaveToProfile = async () => {
+    const auth = getFirebaseAuth();
+    if (!auth.currentUser) {
+      alert('You must be logged in to save your analysis.');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus('IDLE');
+
+    try {
+      const db = getFirebaseDb();
+      await addDoc(collection(db, 'credit_profiles'), {
+        uid: auth.currentUser.uid,
+        cibilScore: profile.startingScore,
+        monthlyIncome: 50000, // Placeholder or add to profile
+        totalDebts: profile.overdueCleared ? 0 : 10000, // Placeholder
+        loanAmount: 500000, // Placeholder
+        loanTenure: 36, // Placeholder
+        finalScore: analysis.finalScore,
+        decision: isGranted ? 'Approved' : 'Rejected',
+        analysis: analysis.interpretation,
+        createdAt: serverTimestamp()
+      });
+      setSaveStatus('SUCCESS');
+      setTimeout(() => setSaveStatus('IDLE'), 3000);
+    } catch (error) {
+      setSaveStatus('ERROR');
+      handleFirestoreError(error, OperationType.WRITE, 'credit_profiles');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleDownload = async () => {
     const element = document.getElementById('pdf-template');
@@ -160,19 +199,21 @@ const LoanDecisionView: React.FC<LoanDecisionViewProps> = ({ decision, analysis,
 
           <div className="flex flex-col md:flex-row gap-4 pt-4">
             <button 
+              onClick={handleSaveToProfile}
+              disabled={isSaving || saveStatus === 'SUCCESS'}
+              className={`flex-1 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                saveStatus === 'SUCCESS' 
+                  ? 'bg-emerald-500 text-white' 
+                  : isDarkMode ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-slate-900 text-white hover:bg-black'
+              } disabled:opacity-70`}
+            >
+              {isSaving ? <RefreshCcw className="animate-spin" size={20} /> : <FileText size={20} />}
+              {saveStatus === 'SUCCESS' ? 'Saved Successfully!' : 'Save to Profile'}
+            </button>
+            <button 
               onClick={handleDownload}
               className={`flex-1 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200`}>
               <Download size={20} /> Download Decision Letter
-            </button>
-            <button 
-              onClick={onBack}
-              className={`flex-1 py-4 rounded-xl font-bold border transition-all ${
-                isDarkMode 
-                  ? 'border-slate-700 text-slate-300 hover:bg-slate-800' 
-                  : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Back to Analyzer
             </button>
           </div>
 

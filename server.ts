@@ -4,8 +4,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const app = express();
+
 const startServer = async () => {
-  const app = express();
   app.use(express.json());
 
   // API Health Check
@@ -28,10 +29,16 @@ const startServer = async () => {
     });
   }
 
-  const PORT = 3000;
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  // Only listen if not on Vercel
+  if (process.env.VERCEL !== '1') {
+    const PORT = 3000;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 };
 
 startServer();
+
+// Export for Vercel
+export default app;

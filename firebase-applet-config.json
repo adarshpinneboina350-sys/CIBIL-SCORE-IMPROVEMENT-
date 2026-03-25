@@ -1,0 +1,10 @@
+{
+  "projectId": "cibil-score-analyzer",
+  "appId": "1:842002120242:web:824adacfc2b5e44616062b",
+  "apiKey": "AIzaSyACwZdUCil6fOnz_qYVub_06WpiZSM_6pg",
+  "authDomain": "cibil-score-analyzer.firebaseapp.com",
+  "firestoreDatabaseId": "credit-analyzer-db",
+  "storageBucket": "cibil-score-analyzer.firebasestorage.app",
+  "messagingSenderId": "842002120242",
+  "measurementId": ""
+}

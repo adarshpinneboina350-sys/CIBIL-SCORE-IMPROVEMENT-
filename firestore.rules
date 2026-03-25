@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (UID)
+    // Fields:
+    //   - uid: string (required) - Unique user ID
+    //   - email: string (required, email) - User email
+    //   - displayName: string (optional) - User display name
+    //   - photoURL: string (optional, url) - User photo URL
+    //   - role: string (required, enum: ['admin', 'user']) - User role
+    //   - createdAt: timestamp (required) - Account creation timestamp
+    //
+    // Collection: credit_profiles
+    // Document ID: profileId
+    // Fields:
+    //   - uid: string (required) - Owner's user ID
+    //   - cibilScore: number (required) - User's CIBIL score
+    //   - monthlyIncome: number (required) - Monthly income
+    //   - totalDebts: number (optional) - Total existing debts
+    //   - loanAmount: number (required) - Requested loan amount
+    //   - loanTenure: number (optional) - Loan tenure in months
+    //   - finalScore: number (optional) - Calculated final score
+    //   - decision: string (required, enum: ['Approved', 'Rejected', 'Manual Review']) - Loan decision
+    //   - analysis: string (optional) - Detailed analysis text
+    //   - createdAt: timestamp (required) - Profile creation timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "adarshpinneboina350@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'role', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 128 &&
+             data.email is string && isValidEmail(data.email) &&
+             (data.displayName == null || (data.displayName is string && data.displayName.size() < 100)) &&
+             (data.photoURL == null || isValidUrl(data.photoURL)) &&
+             data.role in ['admin', 'user'] &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidCreditProfile(data) {
+      return hasOnlyAllowedFields(['uid', 'cibilScore', 'monthlyIncome', 'totalDebts', 'loanAmount', 'loanTenure', 'finalScore', 'decision', 'analysis', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 128 &&
+             data.cibilScore is number && data.cibilScore >= 300 && data.cibilScore <= 900 &&
+             data.monthlyIncome is number && data.monthlyIncome >= 0 &&
+             (data.totalDebts == null || (data.totalDebts is number && data.totalDebts >= 0)) &&
+             data.loanAmount is number && data.loanAmount > 0 &&
+             (data.loanTenure == null || (data.loanTenure is number && data.loanTenure > 0)) &&
+             (data.finalScore == null || data.finalScore is number) &&
+             data.decision in ['Approved', 'Rejected', 'Manual Review'] &&
+             (data.analysis == null || (data.analysis is string && data.analysis.size() < 10000)) &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                      (isOwner(userId) && request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                      (isOwner(userId) && request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /credit_profiles/{profileId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidCreditProfile(request.resource.data) && 
+                      (request.resource.data.uid == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && isValidCreditProfile(request.resource.data) && 
+                      (isDocOwner() || isAdmin());
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

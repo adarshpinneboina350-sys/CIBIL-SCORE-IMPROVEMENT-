@@ -28,6 +28,7 @@ import VerifyEmailPage from './components/VerifyEmailPage';
 import DashboardHome from './components/DashboardHome';
 import ScoreAssignmentPage from './components/ScoreAssignmentPage';
 import FeatureDetailPage, { FeatureId } from './components/FeatureDetailPage';
+import ErrorBoundary from './components/ErrorBoundary';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { isFirebaseConfigured, getFirebaseAuth } from './firebase';
@@ -241,7 +242,7 @@ export default function App() {
       case 'SCORE_ASSIGNMENT':
         return <ScoreAssignmentPage onBack={handleBack} isDarkMode={isDarkMode} />;
       case 'LOAN_DECISION':
-        return <LoanDecisionView decision={loanDecision} analysis={analysis} onBack={handleBack} onAnalyzeAgain={resetAnalysis} isDarkMode={isDarkMode} />;
+        return <LoanDecisionView decision={loanDecision} analysis={analysis} profile={profile} onBack={handleBack} onAnalyzeAgain={resetAnalysis} isDarkMode={isDarkMode} />;
       case 'FEATURE_DETAIL':
         return <FeatureDetailPage featureId={selectedFeatureId} onBack={handleBack} isDarkMode={isDarkMode} />;
       case 'ANALYZER':
@@ -454,7 +455,9 @@ export default function App() {
       </nav>
 
       <AnimatePresence mode="wait">
-        {renderContent()}
+        <ErrorBoundary>
+          {renderContent()}
+        </ErrorBoundary>
       </AnimatePresence>
     </div>
   );

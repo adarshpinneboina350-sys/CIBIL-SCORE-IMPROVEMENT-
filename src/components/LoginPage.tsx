@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Mail, Key } from 'lucide-react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth';
-import { isFirebaseConfigured, getFirebaseAuth } from '../firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { isFirebaseConfigured, getFirebaseAuth, getFirebaseDb, handleFirestoreError, OperationType } from '../firebase';
 
 interface LoginPageProps {
   onLogin: (email: string) => void;
@@ -33,8 +34,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, isDarkMode }) =>
       const auth = getFirebaseAuth();
       if (isSignUp) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await sendEmailVerification(userCredential.user);
-        onLogin(userCredential.user.email || email);
+        const user = userCredential.user;
+        
+        // Save user profile to Firestore
+        try {
+          const db = getFirebaseDb();
+          await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || email.split('@')[0],
+            photoURL: user.photoURL || null,
+            role: 'user',
+            createdAt: serverTimestamp()
+          });
+        } catch (dbErr) {
+          handleFirestoreError(dbErr, OperationType.WRITE, `users/${user.uid}`);
+        }
+
+        await sendEmailVerification(user);
+        onLogin(user.email || email);
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         onLogin(userCredential.user.email || email);
@@ -44,7 +62,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, isDarkMode }) =>
       if (err.code === 'auth/configuration-not-found') {
         setError('Authentication is not enabled in your Firebase project. Please go to the Firebase Console and enable Email/Password authentication.');
       } else if (err.code === 'auth/invalid-credential') {
-        setError('Invalid email or password.');
+        setError('Invalid email or password. If you don\'t have an account, please Sign Up first.');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Please Login instead.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password is too weak. Please use at least 6 characters.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Access to this account has been temporarily disabled. Please try again later or reset your password.');
       } else {
         setError(err.message || 'Authentication failed. Please try again.');
       }
@@ -66,7 +92,24 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack, isDarkMode }) =>
       const auth = getFirebaseAuth();
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-      onLogin(userCredential.user.email || 'User');
+      const user = userCredential.user;
+
+      // Save/Update user profile to Firestore
+      try {
+        const db = getFirebaseDb();
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: 'user',
+          createdAt: serverTimestamp()
+        }, { merge: true });
+      } catch (dbErr) {
+        handleFirestoreError(dbErr, OperationType.WRITE, `users/${user.uid}`);
+      }
+
+      onLogin(user.email || 'User');
     } catch (err: any) {
       console.error('Google Auth error:', err);
       if (err.code === 'auth/configuration-not-found') {
