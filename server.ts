@@ -19,6 +19,13 @@ const startServer = async () => {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+  } else {
+    const path = await import('path');
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
   }
 
   const PORT = 3000;
